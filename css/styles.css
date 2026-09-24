@@ -61,9 +61,14 @@ body {
   background: var(--bg);
   text-wrap: pretty;
   -webkit-font-smoothing: antialiased;
+  /* nothing should ever scroll sideways */
+  overflow-x: hidden;
 }
 
 img { display: block; max-width: 100%; }
+
+/* long words / URLs must never force a horizontal scrollbar on narrow screens */
+h1, h2, h3, p, a, li, figcaption { overflow-wrap: break-word; }
 
 a {
   color: var(--link);
@@ -100,7 +105,9 @@ p { margin: 0; }
 .container {
   max-width: var(--page-max);
   margin-inline: auto;
-  padding-inline: var(--gutter);
+  /* safe-area insets keep content clear of the notch in landscape */
+  padding-left: calc(var(--gutter) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--gutter) + env(safe-area-inset-right, 0px));
 }
 
 .section { padding-block: var(--section-y); }
@@ -280,6 +287,57 @@ p { margin: 0; }
 }
 .nav__links a { color: var(--ink); }
 .nav__links a:hover { color: var(--link); }
+
+/* menu wrapper — an inline flex row on desktop, a collapsible panel on mobile */
+.nav__menu-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 32px;
+}
+
+/* hamburger — hidden until the mobile breakpoint */
+.nav__toggle {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px 10px 12px;
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.nav__burger,
+.nav__burger::before,
+.nav__burger::after {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 0.28s ease, opacity 0.2s ease;
+}
+.nav__burger {
+  position: relative;
+}
+.nav__burger::before,
+.nav__burger::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+.nav__burger::before { top: -6px; }
+.nav__burger::after { top: 6px; }
+
+[aria-expanded='true'] .nav__burger { background: transparent; }
+[aria-expanded='true'] .nav__burger::before { transform: translateY(6px) rotate(45deg); }
+[aria-expanded='true'] .nav__burger::after { transform: translateY(-6px) rotate(-45deg); }
 
 /* ── hero ───────────────────────────────────────────────────────────────── */
 .hero {
@@ -512,7 +570,8 @@ p { margin: 0; }
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 3 across while they fit, then 1 — never a squeezed 3-up with unreadable labels */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 124px), 1fr));
   gap: 20px;
 }
 .stat__value {
@@ -583,6 +642,11 @@ p { margin: 0; }
 .dark a:not(.btn) { color: var(--dark-highlight); }
 
 .figure-plain { margin: 0; }
+/* width must be explicit: with aspect-ratio + min-height and width:auto the
+   browser resolves the WIDTH from the height and overflows narrow screens */
+.ratio-16-10,
+.ratio-1-1,
+.ratio-5-1 { width: 100%; }
 .figure-plain img {
   width: 100%;
   height: 100%;
@@ -792,14 +856,189 @@ p { margin: 0; }
 .footer a { color: var(--dark-highlight); }
 .footer a:hover { color: #fff; }
 
-/* ── responsive tweaks ──────────────────────────────────────────────────── */
+/* ==========================================================================
+   Responsive layer
+   The layout is fluid by default (clamp + auto-fit grids); these breakpoints
+   only handle the things fluidity can't: the nav collapse, fixed column
+   counts, and image crops that stop working at small sizes.
+   ========================================================================== */
+
+/* ── ≤1100px — tighten the nav before it wraps ──────────────────────────── */
+@media (max-width: 1100px) {
+  .nav__links { gap: 8px 20px; }
+  .nav { gap: 14px 24px; }
+}
+
+/* ── ≤900px — nav collapses to a hamburger ─────────────────────────────── */
+@media (max-width: 900px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 0;
+    padding-block: 16px;
+  }
+  .nav__brand { margin-right: auto; }
+  .nav__wordmark { font-size: clamp(21px, 5.2vw, 28px); }
+
+  .nav__toggle { display: inline-flex; }
+
+  /* collapsible panel: 0fr → 1fr animates to the content's real height */
+  .nav__menu {
+    flex-basis: 100%;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s ease;
+  }
+  .nav__menu.is-open { grid-template-rows: 1fr; }
+
+  .nav__menu-inner {
+    overflow: hidden;
+    flex-direction: column;
+    /* must be nowrap: a wrapping column flex box with a collapsed (0fr) height
+       breaks each item onto a NEW COLUMN, pushing them off-screen sideways */
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .nav__links {
+    flex-direction: column;
+    gap: 0;
+    font-size: 15px;
+    margin-top: 8px;
+  }
+  .nav__links a {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .nav__menu .btn {
+    width: 100%;
+    min-height: 50px;
+    margin: 18px 0 6px;
+  }
+}
+
+/* ── ≤760px — stacked layouts ──────────────────────────────────────────── */
 @media (max-width: 760px) {
   .collage {
-    grid-template-rows: minmax(200px, 1.2fr) minmax(160px, 1fr);
+    grid-template-rows: minmax(190px, 1.2fr) minmax(150px, 1fr);
+    gap: 10px;
   }
-  .stats { gap: 12px; }
   .slider { aspect-ratio: 4 / 3; }
   .slider__caption { display: none; }
+
+  /* the 999×200 banner strips crop hard in a narrow box — let them sit
+     shallower so less of the image is thrown away */
+  .ratio-5-1 { min-height: 104px; }
+
+  /* section 03: photo collage above the text reads better than beside it */
+  .explore .container { gap: 32px; }
+
+  .activity { grid-template-columns: 68px minmax(0, 1fr); gap: 14px; }
+  .activity__thumb { width: 68px; height: 68px; }
+
+  .topbar__inner { gap: 4px 18px; font-size: 11.5px; }
+
+  .footer__inner { padding-block: 40px; }
+}
+
+/* ── ≤560px — phones ───────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  /* let the display type get genuinely small — the clamp floors are sized
+     for tablets and overflow a 360px screen */
+  .h1 { font-size: clamp(38px, 11vw, 60px); }
+  .h2,
+  .h2--lg { font-size: clamp(30px, 8.4vw, 42px); }
+  .news__title { font-size: clamp(26px, 7.4vw, 34px); }
+  .offer__headline { font-size: clamp(21px, 5.8vw, 26px); }
+  .annex__body { font-size: clamp(19px, 5vw, 22px); }
+  .column__title { font-size: 22px; }
+  .footer__wordmark { font-size: 25px; }
+
+  /* 124px columns fall into a lopsided 2 + 1 on a phone — read them as a
+     list instead, value and label on one baseline */
+  .stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .stats > div {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(47, 83, 89, 0.18);
+  }
+  .stats > div:first-child { padding-top: 0; }
+  .stats > div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .stat__value {
+    font-size: clamp(38px, 11vw, 46px);
+    min-width: 76px;
+  }
+  .stat__label { margin-top: 0; }
+
+  /* a 2-up collage at this width makes every photo a postage stamp */
+  .collage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  .collage figure { min-height: 200px; }
+
+  .room-figure__frame { aspect-ratio: 2 / 1; }
+
+  .tile { padding: 20px 18px 22px; }
+  .tile__num { font-size: 34px; }
+
+  .card { min-height: 0; gap: 18px; padding: 18px; }
+  .card__title { font-size: 20px; }
+
+  .btn-row .btn { flex: 1 1 100%; }
+
+  .slider { aspect-ratio: 3 / 4; min-height: 0; }
+  .slider__num { font-size: 22px; }
+}
+
+/* ── ≤380px — smallest phones still in use ─────────────────────────────── */
+@media (max-width: 380px) {
+  .h1 { font-size: clamp(32px, 10.5vw, 44px); }
+  .nav__toggle-text { display: none; }
+  .nav__toggle { padding: 10px 12px; }
+  .kicker__num { font-size: 26px; }
+}
+
+/* ── landscape phones — don't let the hero eat the whole screen ────────── */
+@media (max-height: 520px) and (orientation: landscape) {
+  .slider {
+    aspect-ratio: auto;
+    height: 78vh;
+    min-height: 240px;
+  }
+  .hero { padding-top: 24px; }
+}
+
+/* ── touch devices — enlarge tap targets without changing the desktop ──── */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .slider__arrow { width: 44px; height: 44px; }
+  .slider__dot { height: 6px; padding-block: 2px; background-clip: content-box; }
+  .topbar a,
+  .footer a { display: inline-block; padding-block: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .slider__img,
+  .slider__dot,
+  .nav__menu,
+  .nav__burger,
+  .nav__burger::before,
+  .nav__burger::after,
+  .btn,
+  .card,
+  .tile,
+  a { transition: none; }
+  .slider__img.is-active { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -106,3 +106,47 @@
   render();
   start();
 })();
+
+
+/* ==========================================================================
+   Mobile navigation
+   The links + book button live in a panel that collapses under 900px.
+   Closes on link click, Escape, and when the viewport grows past the
+   breakpoint (so the desktop nav is never left in a stale "open" state).
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var toggle = document.querySelector('[data-nav-toggle]');
+  var menu = document.querySelector('[data-nav-menu]');
+  if (!toggle || !menu) return;
+
+  var desktop = window.matchMedia('(min-width: 901px)');
+
+  function setOpen(open) {
+    menu.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  toggle.addEventListener('click', function () {
+    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+  });
+
+  /* tapping a link navigates to the anchor — collapse the panel behind it */
+  menu.addEventListener('click', function (e) {
+    if (e.target.closest('a')) setOpen(false);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (toggle.getAttribute('aria-expanded') !== 'true') return;
+    setOpen(false);
+    toggle.focus();
+  });
+
+  function syncToViewport(e) {
+    if (e.matches) setOpen(false);
+  }
+  if (desktop.addEventListener) desktop.addEventListener('change', syncToViewport);
+  else desktop.addListener(syncToViewport);
+})();
