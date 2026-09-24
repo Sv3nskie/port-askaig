@@ -942,6 +942,18 @@ p { margin: 0; }
   .topbar__inner { gap: 4px 18px; font-size: 11.5px; }
 
   .footer__inner { padding-block: 40px; }
+
+  /* photo first on a phone — the headline reads better under the image than
+     pushing it a full screen down */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    padding-top: 12px;
+  }
+  .slider {
+    order: -1;
+    margin: 0 0 clamp(26px, 6vw, 38px);
+  }
 }
 
 /* ── ≤560px — phones ───────────────────────────────────────────────────── */
@@ -987,8 +999,23 @@ p { margin: 0; }
 
   .room-figure__frame { aspect-ratio: 2 / 1; }
 
-  .tile { padding: 20px 18px 22px; }
-  .tile__num { font-size: 34px; }
+  /* the section index and the 4-up photo row both collapse to a single
+     column below 360px of content width, which runs to ~700px of scroll.
+     Force 2 x 2 and tighten the tiles right down. */
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .index-section { padding-block: clamp(30px, 6vw, 48px); }
+  .tile {
+    padding: 14px 14px 16px;
+    gap: 3px;
+    border-top-width: 2px;
+  }
+  .tile__num { font-size: 25px; }
+  .tile__label { font-size: 10.5px; letter-spacing: 0.16em; }
+  /* the description is redundant on a phone — each section follows directly */
+  .tile__desc { display: none; }
 
   .card { min-height: 0; gap: 18px; padding: 18px; }
   .card__title { font-size: 20px; }
